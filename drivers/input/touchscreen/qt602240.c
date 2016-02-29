@@ -12,11 +12,6 @@
  */
 #include "qt602240.h"
 #include <linux/timer.h>
-
-#ifdef CONFIG_TOUCH_WAKE
-#include <linux/touch_wake.h>
-#endif
- 
 /******************************************************************************
 *
 *
@@ -2355,10 +2350,6 @@ static int __devinit qt602240_probe(struct i2c_client *client,
     register_early_suspend(&data->early_suspend);
 #endif	/* CONFIG_HAS_EARLYSUSPEND */
 
-#ifdef CONFIG_TOUCH_WAKE
-    touchwake_data = data;
-#endif
- 
     return 0;
 
     err_free_irq:
@@ -2430,28 +2421,6 @@ static int qt602240_suspend(struct i2c_client *client, pm_message_t mesg)
 
 }
 
-#ifdef CONFIG_TOUCH_WAKE
-static struct qt602240_data * touchwake_data;
-
-void touchscreen_disable(void)
-{
-    disable_irq(touchwake_data->client->irq);
-    qt602240_suspend(touchwake_data);
-
-    return;
-}
-EXPORT_SYMBOL(touchscreen_disable);
-
-void touchscreen_enable(void)
-{
-    qt602240_resume(touchwake_data);
-    enable_irq(touchwake_data->client->irq);
-
-    return;
-}
-EXPORT_SYMBOL(touchscreen_enable);
-#endif
- 
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 static void qt602240_late_resume(struct early_suspend *early_sus)
 {
