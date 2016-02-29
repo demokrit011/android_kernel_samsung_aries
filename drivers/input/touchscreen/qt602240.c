@@ -2431,12 +2431,12 @@ static int qt602240_suspend(struct i2c_client *client, pm_message_t mesg)
 }
 
 #ifdef CONFIG_TOUCH_WAKE
-static struct mxt224_data * touchwake_data;
+static struct qt602240_data * touchwake_data;
 
 void touchscreen_disable(void)
 {
     disable_irq(touchwake_data->client->irq);
-    mxt224_internal_suspend(touchwake_data);
+    qt602240_suspend(touchwake_data);
 
     return;
 }
@@ -2444,7 +2444,7 @@ EXPORT_SYMBOL(touchscreen_disable);
 
 void touchscreen_enable(void)
 {
-    mxt224_internal_resume(touchwake_data);
+    qt602240_resume(touchwake_data);
     enable_irq(touchwake_data->client->irq);
 
     return;
