@@ -7639,7 +7639,7 @@ static void __init p1_inject_cmdline(void) {
 	} else {
 		// Only write bootmode when less than 10 to prevent confusion with watchdog
 		// reboot (0xee = 238)
-		if (bootmode < 15) {
+		if (bootmode < 10) {
 			size += sprintf(new_command_line + size, " bootmode=%d", bootmode);
 		}
 	}
