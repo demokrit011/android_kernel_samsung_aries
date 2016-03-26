@@ -452,7 +452,7 @@ static ssize_t l3g4200d_write(struct file *file, const char __user *buf,
 /*					Start of L3G4200D Sysfs	  							 */
 /*************************************************************************/
 //TEST
-//#define POWER_ON_TEST
+#define POWER_ON_TEST
 static ssize_t l3g4200d_power_on(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	int count;
