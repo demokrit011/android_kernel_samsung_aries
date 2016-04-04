@@ -31,9 +31,8 @@
 #include <linux/irq.h>
 #include <linux/skbuff.h>
 #include <linux/console.h>
-#ifdef CONFIG_ION_S5P
-#include <../../../drivers/staging/android/ion/ion.h>
-#endif
+#include <linux/ion.h>
+
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 #include <asm/setup.h>
@@ -56,6 +55,10 @@
 #include <linux/reboot.h>
 #include <linux/wlan_plat.h>
 #include <linux/mfd/wm8994/wm8994_pdata.h>
+
+#ifdef CONFIG_ANDROID_PMEM
+#include <linux/android_pmem.h>
+#endif
 
 #include <plat/media.h>
 #include <mach/media.h>
@@ -387,18 +390,22 @@ static struct s3cfb_lcd lvds = {
 };
 
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0 (12288 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0_XL (12288 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0_BM (5000 * SZ_1K)
 
 // Disabled to save memory (we can't find where it's used)
 //#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1 (8192 * SZ_1K)
 
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2 (12288 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2_XL (12288 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2_BM (5000 * SZ_1K)
 
 #define S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM (0 * SZ_1K)
 
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0_XL (11264 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1_XL (11264 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0_BM (11264 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1_BM (11264 * SZ_1K)
  
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0 (14336 * SZ_1K)
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1 (21504 * SZ_1K)
@@ -408,11 +415,12 @@ static struct s3cfb_lcd lvds = {
 						 (CONFIG_FB_S3C_NUM_OVLY_WIN * \
 						  CONFIG_FB_S3C_NUM_BUF_OVLY_WIN)))
 #define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG (3600 * SZ_1K)
-#define  S5P_MAX_VIDEO_BUFFERS	8
-#define  S5P_VIDEO_Y_SIZE	ALIGN(1280 * 720, PAGE_SIZE)
-#define  S5P_VIDEO_UV_SIZE	ALIGN(1280 * 360, PAGE_SIZE)
-#define  S5P_ION_CARVEOUT	\
-	S5P_MAX_VIDEO_BUFFERS * (S5P_VIDEO_Y_SIZE + S5P_VIDEO_UV_SIZE)
+#define  S5PV210_ANDROID_PMEM_MEMSIZE_PMEM (8192 * SZ_1K)
+#define  S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_GPU1 (4200 * SZ_1K)
+#define  S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_ADSP (1500 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_TEXTSTREAM (4800 * SZ_1K)
+#define  S5PV210_VIDEO_SAMSUNG_MEMSIZE_ION (S5PV210_LCD_WIDTH * \
+						 S5PV210_LCD_HEIGHT * 4 * 3)
 
 static struct s5p_media_device p1_media_devs[] = {
 	[0] = {
@@ -436,21 +444,30 @@ static struct s5p_media_device p1_media_devs[] = {
 		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0,
 		.paddr = 0,
 	},
+/*
 	[3] = {
+		.id = S5P_MDEV_FIMC1,
+		.name = "fimc1",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC1,
+		.paddr = 0,
+	},
+*/
+	[4] = {
 		.id = S5P_MDEV_FIMC2,
 		.name = "fimc2",
 		.bank = 1,
 		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2,
 		.paddr = 0,
 	},
-	[4] = {
+	[5] = {
 		.id = S5P_MDEV_JPEG,
 		.name = "jpeg",
 		.bank = 0,
 		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_JPEG,
 		.paddr = 0,
 	},
-	[5] = {
+	[6] = {
 		.id = S5P_MDEV_FIMD,
 		.name = "fimd",
 		.bank = 1,
@@ -458,11 +475,40 @@ static struct s5p_media_device p1_media_devs[] = {
 		.paddr = 0,
 	},
 #ifdef CONFIG_ION_S5P
-	[6] = {
-		.id = S5P_MDEV_ION_CARVEOUT,
-		.name = "ion-carveout",
+	[7] = {
+		.id = S5P_MDEV_ION,
+		.name = "ion",
 		.bank = 1,
-		.memsize = S5P_ION_CARVEOUT,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_ION,
+		.paddr = 0,
+	},
+#elif defined(CONFIG_ANDROID_PMEM)
+	[7] = {
+		.id = S5P_MDEV_PMEM,
+		.name = "pmem",
+		.bank = 0,
+		.memsize = S5PV210_ANDROID_PMEM_MEMSIZE_PMEM,
+		.paddr = 0,
+	},
+	[8] = {
+		.id = S5P_MDEV_PMEM_GPU1,
+		.name = "pmem_gpu1",
+		.bank = 0,
+		.memsize = S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_GPU1,
+		.paddr = 0,
+	},
+	[9] = {
+		.id = S5P_MDEV_PMEM_ADSP,
+		.name = "pmem_adsp",
+		.bank = 0,
+		.memsize = S5PV210_ANDROID_PMEM_MEMSIZE_PMEM_ADSP,
+		.paddr = 0,
+		},
+	[10] = {
+		.id = S5P_MDEV_TEXSTREAM,
+		.name = "s3c_bc",
+		.bank = 1,
+		.memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_TEXTSTREAM,
 		.paddr = 0,
 	},
 #endif
@@ -477,35 +523,35 @@ static struct s5pv210_cpufreq_voltage smdkc110_cpufreq_volt[] = {
 	}, {
 		.freq	= 1300000,
 		.varm	= DVSARM1,
-		.vint	= DVSINT0,
+		.vint	= DVSINT1,
 	}, {
 		.freq	= 1200000,
 		.varm	= DVSARM2,
-		.vint	= DVSINT1,
+		.vint	= DVSINT2,
 	}, {
 		.freq	= 1100000,
 		.varm	= DVSARM3,
-		.vint	= DVSINT1,
+		.vint	= DVSINT2,
 	}, {
 		.freq	= 1000000,
 		.varm	= DVSARM4,
-		.vint	= DVSINT2,
+		.vint	= DVSINT3,
 	}, {
 		.freq	=  800000,
 		.varm	= DVSARM5,
-		.vint	= DVSINT2,
+		.vint	= DVSINT3,
 	}, {
 		.freq	=  400000,
 		.varm	= DVSARM6,
-		.vint	= DVSINT2,
+		.vint	= DVSINT3,
 	}, {
 		.freq	=  200000,
 		.varm	= DVSARM7,
-		.vint	= DVSINT2,
+		.vint	= DVSINT3,
 	}, {
 		.freq	=  100000,
 		.varm	= DVSARM7,
-		.vint	= DVSINT3,
+		.vint	= DVSINT4,
 	},
 };
 
@@ -786,7 +832,7 @@ static struct regulator_init_data p1_buck1_data = {
 	.constraints	= {
 		.name		= "VDD_ARM",
 		.min_uV		= 750000,
-		.max_uV		= 1500000,
+		.max_uV		= 1600000,
 		.apply_uV	= 1,
 		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
 				  REGULATOR_CHANGE_STATUS,
@@ -2986,6 +3032,69 @@ static struct platform_device ram_console_device = {
 	.num_resources = ARRAY_SIZE(ram_console_resource),
 	.resource = ram_console_resource,
 };
+
+#ifdef CONFIG_ANDROID_PMEM
+static struct android_pmem_platform_data pmem_pdata = {
+	.name = "pmem",
+	.no_allocator = 1,
+	.cached = 1,
+	.start = 0,
+	.size = 0,
+};
+
+static struct android_pmem_platform_data pmem_gpu1_pdata = {
+	.name = "pmem_gpu1",
+	.no_allocator = 1,
+	.cached = 1,
+	.buffered = 1,
+	.start = 0,
+	.size = 0,
+};
+
+static struct android_pmem_platform_data pmem_adsp_pdata = {
+	.name = "pmem_adsp",
+	.no_allocator = 1,
+	.cached = 1,
+	.buffered = 1,
+	.start = 0,
+	.size = 0,
+};
+
+static struct platform_device pmem_device = {
+	.name = "android_pmem",
+	.id = 0,
+	.dev = { .platform_data = &pmem_pdata },
+};
+
+static struct platform_device pmem_gpu1_device = {
+	.name = "android_pmem",
+	.id = 1,
+	.dev = { .platform_data = &pmem_gpu1_pdata },
+};
+
+static struct platform_device pmem_adsp_device = {
+	.name = "android_pmem",
+	.id = 2,
+	.dev = { .platform_data = &pmem_adsp_pdata },
+};
+
+static void __init android_pmem_set_platdata(void)
+{
+	pmem_pdata.start = (u32)s5p_get_media_memory_bank(S5P_MDEV_PMEM, 0);
+	pmem_pdata.size = (u32)s5p_get_media_memsize_bank(S5P_MDEV_PMEM, 0);
+
+	pmem_gpu1_pdata.start =
+		(u32)s5p_get_media_memory_bank(S5P_MDEV_PMEM_GPU1, 0);
+	pmem_gpu1_pdata.size =
+		(u32)s5p_get_media_memsize_bank(S5P_MDEV_PMEM_GPU1, 0);
+
+	pmem_adsp_pdata.start =
+		(u32)s5p_get_media_memory_bank(S5P_MDEV_PMEM_ADSP, 0);
+	pmem_adsp_pdata.size =
+		(u32)s5p_get_media_memsize_bank(S5P_MDEV_PMEM_ADSP, 0);
+}
+#endif
+
 
 static struct regulator *reg_safeout1;
 static struct regulator *reg_safeout2;
@@ -7201,20 +7310,21 @@ static struct platform_device p1_keyboard = {
 #endif
 
 #ifdef CONFIG_ION_S5P
-struct ion_platform_heap p1_heaps[] = {
-	{
-		.id	    = ION_HEAP_TYPE_SYSTEM,
-		.type	= ION_HEAP_TYPE_SYSTEM,
-		.name	= "system",
-	},{
-		.id	    = ION_HEAP_TYPE_CARVEOUT,
-		.type	= ION_HEAP_TYPE_CARVEOUT,
-		.name	= "carveout",
-	}
-};
+
 static struct ion_platform_data ion_s5p_data = {
-	.nr = ARRAY_SIZE(p1_heaps),
-	.heaps = p1_heaps,
+	.nr = 2,
+	.heaps = {
+		{
+			.type = ION_HEAP_TYPE_SYSTEM,
+			.id = ION_HEAP_TYPE_SYSTEM,
+			.name = "system",
+		},
+		{
+			.type = ION_HEAP_TYPE_CARVEOUT,
+			.id = ION_HEAP_TYPE_CARVEOUT,
+			.name = "carveout",
+		},
+	},
 };
 
 static struct platform_device ion_s5p_device = {
@@ -7225,13 +7335,12 @@ static struct platform_device ion_s5p_device = {
 	},
 };
 
-static void __init ion_s5p_set_platdata(void)
+static void ion_s5p_set_platdata(void)
 {
-	ion_s5p_data.heaps[1].base =
-		s5p_get_media_memory_bank(S5P_MDEV_ION_CARVEOUT, 1);
-	ion_s5p_data.heaps[1].size =
-		s5p_get_media_memsize_bank(S5P_MDEV_ION_CARVEOUT, 1);
+	ion_s5p_data.heaps[1].base = s5p_get_media_memory_bank(S5P_MDEV_ION, 1);
+	ion_s5p_data.heaps[1].size = s5p_get_media_memsize_bank(S5P_MDEV_ION, 1);
 }
+
 #endif /* CONFIG_ION_S5P */
 
 static struct platform_device *p1_devices[] __initdata = {
@@ -7342,6 +7451,12 @@ static struct platform_device *p1_devices[] __initdata = {
 	&s5pv210_pd_mfc,
 #endif
 
+#ifdef CONFIG_ANDROID_PMEM
+	&pmem_device,
+	&pmem_gpu1_device,
+	&pmem_adsp_device,
+#endif
+
 #ifdef CONFIG_HAVE_PWM
 	&s3c_device_timer[0],
 	&s3c_device_timer[1],
@@ -7383,42 +7498,52 @@ unsigned int HWREV;
 EXPORT_SYMBOL(HWREV);
 
 static void check_bigmem(void) {
+	enum mdev_ids  {
+	mfc0 = 0,
+	mfc1 = 1,
+	fimc0 = 2,
+	// fimc1 was removed
+	fimc2 = 3,
+	jpeg = 4,
+	};
+
 	int bootmode = __raw_readl(S5P_INFORM6);
 	if ((bootmode == 11) || (bootmode == 13)) {
 		nocam = true;
 		bigmem = false;
 		xlmem = false;
-		p1_media_devs[2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
-		p1_media_devs[4].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
-		p1_media_devs[0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
-		p1_media_devs[1].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
+		p1_media_devs[mfc0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
+		p1_media_devs[mfc1].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
+		p1_media_devs[fimc0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
+		p1_media_devs[fimc2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
+		p1_media_devs[jpeg].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_NOCAM;
 	}
 	else if ((bootmode == 7) || (bootmode == 9)) {
 		bigmem = true;
 		nocam = false;
 		xlmem = false;
-		p1_media_devs[2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0_BM;
-		p1_media_devs[4].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0_BM;
-		p1_media_devs[0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0_XL; 
-		p1_media_devs[1].memsize =  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1_XL;
+		p1_media_devs[mfc0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0_BM;
+		p1_media_devs[mfc1].memsize =  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1_BM;
+		p1_media_devs[fimc0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0_BM; 
+		p1_media_devs[fimc2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2_BM;
 	}
 	else if ((bootmode == 3) || (bootmode == 5)) {
 		xlmem = true;
 		bigmem = false;
 		nocam = false;
-		p1_media_devs[2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0;
-		p1_media_devs[4].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0;
-		p1_media_devs[0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0_XL; 
-		p1_media_devs[1].memsize =  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1_XL;
+		p1_media_devs[mfc0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0_XL;
+		p1_media_devs[mfc1].memsize =  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1_XL;
+		p1_media_devs[fimc0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0_XL; 
+		p1_media_devs[fimc2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2_XL;
 	}
 	else {
 		bigmem = false;
 		xlmem = false;
 		nocam = false;
-		p1_media_devs[2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0;
-		p1_media_devs[4].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0;
-		p1_media_devs[0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0; 
-		p1_media_devs[1].memsize =  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1;
+		p1_media_devs[mfc0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC0;
+		p1_media_devs[mfc1].memsize =  S5PV210_VIDEO_SAMSUNG_MEMSIZE_MFC1;
+		p1_media_devs[fimc0].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC0; 
+		p1_media_devs[fimc2].memsize = S5PV210_VIDEO_SAMSUNG_MEMSIZE_FIMC2;
 	}
 }
 
@@ -7669,6 +7794,10 @@ static void __init p1_machine_init(void)
 
 	/*initialise the gpio's*/
 	p1_init_gpio();
+
+#ifdef CONFIG_ANDROID_PMEM
+	android_pmem_set_platdata();
+#endif
 
 #ifdef CONFIG_ION_S5P
 	ion_s5p_set_platdata();
