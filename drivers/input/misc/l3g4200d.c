@@ -946,7 +946,7 @@ static int l3g4200d_probe(struct i2c_client *client,
 	mutex_lock(&data->lock);
 
 	/* hrtimer settings.  we poll for gyro values using a timer. */
-	hrtimer_init(&data->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	hrtimer_init(&data->timer, CLOCK_BOOTTIME, HRTIMER_MODE_REL);
 	data->polling_delay = ns_to_ktime(200 * NSEC_PER_MSEC);
 	data->time_to_read = 10000000LL;
 	data->timer.function = l3g_timer_func;
