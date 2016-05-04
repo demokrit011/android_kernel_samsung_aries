@@ -330,8 +330,7 @@ void audio_ctrl_earmic_bias_gpio(int enable)
 
 
 /*Audio Routing routines for the universal board..wm8994 codec*/
-void wm8994_disable_playback_path(struct snd_soc_codec *codec,
-				  enum audio_path path)
+void wm8994_disable_playback_path(struct snd_soc_codec *codec, enum playback_path path)
 {
 	u16 val;
 
