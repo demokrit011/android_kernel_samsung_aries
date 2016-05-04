@@ -3143,10 +3143,10 @@ void wm8994_set_voicecall_bluetooth(struct snd_soc_codec *codec)
 
 	wm8994_write(codec, WM8994_AIF2_CLOCKING_1, 0x0019);
 
-	wm8994_write(codec, WM8994_DAC2_MIXER_VOLUMES, 0x01EF);
+	wm8994_write(codec, WM8994_DAC2_MIXER_VOLUMES, 0x000C);
 
-	wm8994_write(codec, WM8994_DAC2_LEFT_VOLUME, 0x01FF);
-	wm8994_write(codec, WM8994_DAC2_RIGHT_VOLUME, 0x01FF);
+	wm8994_write(codec, WM8994_DAC2_LEFT_VOLUME, 0x01C0);
+	wm8994_write(codec, WM8994_DAC2_RIGHT_VOLUME, 0x01C0);
 
 	wm8994_write(codec, WM8994_OVERSAMPLING, 0X0000);
 
