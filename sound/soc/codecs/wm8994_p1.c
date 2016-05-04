@@ -330,12 +330,10 @@ void audio_ctrl_earmic_bias_gpio(int enable)
 
 
 /*Audio Routing routines for the universal board..wm8994 codec*/
-void wm8994_disable_path(struct snd_soc_codec *codec)
+void wm8994_disable_playback_path(struct snd_soc_codec *codec,
+				  enum audio_path path)
 {
-	struct wm8994_priv *wm8994 = codec->drvdata;
-
 	u16 val;
-	enum audio_path path = wm8994->cur_path;
 
 	DEBUG_LOG("Path = [%d]", path);
 
@@ -1590,8 +1588,6 @@ void wm8994_set_playback_receiver(struct snd_soc_codec *codec)
 	val &= ~(WM8994_MIXOUTLVOL_TO_HPOUT2_MASK | WM8994_MIXOUTRVOL_TO_HPOUT2_MASK);
 	val |= (WM8994_MIXOUTRVOL_TO_HPOUT2 | WM8994_MIXOUTLVOL_TO_HPOUT2);
 	wm8994_write(codec,WM8994_HPOUT2_MIXER,val);
-	
-	wm8994_set_codec_gain(codec, PLAYBACK_MODE, PLAYBACK_RCV);
 
 	val = wm8994_read(codec,WM8994_POWER_MANAGEMENT_5);
 	val &= ~(WM8994_DAC1R_ENA_MASK | WM8994_DAC1L_ENA_MASK | WM8994_AIF1DAC1R_ENA_MASK | WM8994_AIF1DAC1L_ENA_MASK);
