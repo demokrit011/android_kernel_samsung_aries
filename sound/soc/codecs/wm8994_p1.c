@@ -3185,7 +3185,7 @@ void wm8994_set_voicecall_bluetooth(struct snd_soc_codec *codec)
 #if defined(CONFIG_PHONE_P1_GSM)
 	int val;
 
-	wm8994_set_voicecall_common_setting(codec);
+	wm8994_set_bluetooth_common_setting(codec);
 
 	/*GPIO Configuration*/
 	wm8994_write(codec, WM8994_GPIO_8, WM8994_GP8_DIR | WM8994_GP8_DB);
